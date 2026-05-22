@@ -25,7 +25,8 @@ class BulbapediaClient:
 
         async with httpx.AsyncClient(
             timeout=10.0,
-            headers={"User-Agent": "pokemon-crawler/1.0"}
+            headers={"User-Agent": "pokemon-crawler/1.0"},
+            follow_redirects=True,
         ) as client:
             response = await client.get(url)
             response.raise_for_status()

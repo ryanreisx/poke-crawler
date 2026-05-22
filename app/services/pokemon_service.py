@@ -1,10 +1,11 @@
 ﻿from __future__ import annotations
 
-from typing import Callable
+import asyncio
 
 from app.clients.bulbapedia_client import BulbapediaClient
 from app.database.models.pokemon_model import PokemonModel
 from app.database.unit_of_work import SqlAlchemyUnitOfWork
+from app.models.pokemon import Pokemon
 from app.parsers.pokemon_parser import PokemonParser
 from app.services.image_service import ImageService
 
@@ -20,14 +21,35 @@ class PokemonService:
         self.parser = parser or PokemonParser()
         self.image_service = image_service or ImageService()
 
-    async def crawl_and_persist(self, name):
+    async def crawl_and_persist(self, name: str) -> PokemonModel:
         pokemon = await self.crawl(name)
 
         with SqlAlchemyUnitOfWork() as uow:
             return uow.pokemon_repository.upsert(pokemon)
-        
-    
-    async def crawl(self, name) -> PokemonModel:
+
+    async def crawl_and_persist_many(self, names: list[str], max_concurrency: int = 5) -> list[dict]:
+        semaphore = asyncio.Semaphore(max_concurrency)
+
+        async def worker(name: str) -> dict:
+            async with semaphore:
+                try:
+                    persisted = await self.crawl_and_persist(name)
+                    return {
+                        "name": name,
+                        "ok": True,
+                        "national_number": persisted.national_pokedex_number,
+                    }
+                except Exception as exc:
+                    return {
+                        "name": name,
+                        "ok": False,
+                        "error": str(exc),
+                    }
+
+        tasks = [worker(name) for name in names]
+        return await asyncio.gather(*tasks)
+
+    async def crawl(self, name: str) -> Pokemon:
         html = await self.client.fetch_pokemon_page(name)
         pokemon = self.parser.parse(html)
 
