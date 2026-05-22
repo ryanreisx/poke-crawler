@@ -79,7 +79,7 @@ class PokemonParser:
         if not category_link:
             raise ParsingError("Pokemon category not found")
         
-        return category_link.get_text(strip=True)
+        return category_link.get_text(" ", strip=True)
 
     def parse_types(self, infobox: Tag) -> list[str]:
         type_section = infobox.find("a", title="Type")
