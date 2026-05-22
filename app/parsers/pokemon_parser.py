@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup, Tag
 from app.models.ability import Ability
 from app.models.evolutions import Evolutions
 from app.models.pokemon import Pokemon
+from app.exceptions.parsing_error import ParsingError
 
 
 class PokemonParser:
@@ -42,14 +43,17 @@ class PokemonParser:
 
     def parse_infobox(self, soup: BeautifulSoup) -> Tag:
         infobox = soup.find("table", class_="roundy infobox")
+
         if not infobox:
-            raise ValueError("Pokemon infobox not found")
+            raise ParsingError("Pokemon infobox not found")
+        
         return infobox
 
     def parse_name(self, soup: BeautifulSoup) -> str:
         title = soup.find("h1")
         if not title:
-            raise ValueError("Pokemon name not found")
+            raise ParsingError("Pokemon name not found")
+        
         return self._clean_name(title.get_text(strip=True))
 
     def parse_national_number(self, infobox: Tag) -> int:
@@ -57,39 +61,48 @@ class PokemonParser:
             "a",
             title="List of Pokémon by National Pokédex number",
         )
+
         if not number_link:
-            raise ValueError("National number link not found")
+            raise ParsingError("National number link not found")
 
         text = number_link.get_text(strip=True)
         digits = "".join(char for char in text if char.isdigit())
+
         if not digits:
-            raise ValueError("National number not found")
+            raise ParsingError("Invalid national number format")
+        
         return int(digits)
 
     def parse_category(self, infobox: Tag) -> str:
         category_link = infobox.find("a", title="Pokémon category")
+
         if not category_link:
-            raise ValueError("Pokemon category not found")
+            raise ParsingError("Pokemon category not found")
+        
         return category_link.get_text(strip=True)
 
     def parse_types(self, infobox: Tag) -> list[str]:
         type_section = infobox.find("a", title="Type")
+
         if not type_section:
-            raise ValueError("Type section not found")
+            raise ParsingError("Type section not found")
 
         type_container = type_section.find_parent("td")
+
         if not type_container:
-            raise ValueError("Type container not found")
+            raise ParsingError("Type container not found")
 
         types: list[str] = []
         for link in type_container.find_all("a", title=lambda v: bool(v and v.endswith("(type)"))):
             parent_td = link.find_parent("td")
+
             if parent_td and self._is_hidden_by_style(parent_td):
                 continue
 
             type_name = link.get_text(strip=True)
             if not type_name or type_name == "Unknown":
                 continue
+
             if type_name not in types:
                 types.append(type_name)
 
@@ -129,7 +142,7 @@ class PokemonParser:
 
         missing = [v for v in stat_mapping.values() if v not in stats]
         if missing:
-            raise ValueError(f"Missing base stats: {', '.join(missing)}")
+            raise ParsingError(f"Missing base stats: {', '.join(missing)}")
 
         return stats
 
@@ -257,4 +270,5 @@ class PokemonParser:
 
     def _is_hidden_by_style(self, node: Tag) -> bool:
         style = (node.get("style") or "").replace(" ", "").lower()
+
         return "display:none" in style
