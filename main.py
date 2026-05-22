@@ -1,14 +1,14 @@
 ﻿import asyncio
 
-from app.database.connection import init_db
-from app.services.pokemon_service import PokemonService
+from app.runner import run_crawler
 
 
-async def main():
-    init_db()
+def main() -> None:
+    pokemons = ["Crobat", "Garchomp", "Greninja", "Lucario", "Mimikyu", "Scizor", "Talonflame"]
 
-    service = PokemonService()
-    persisted = await service.crawl_and_persist("Magikarp")
+    asyncio.run(run_crawler(pokemons))
 
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    main()
