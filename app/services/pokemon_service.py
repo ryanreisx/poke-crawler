@@ -1,10 +1,12 @@
 ﻿from __future__ import annotations
 
 import asyncio
+import httpx
 
 from app.clients.bulbapedia_client import BulbapediaClient
 from app.database.models.pokemon_model import PokemonModel
 from app.database.unit_of_work import SqlAlchemyUnitOfWork
+from app.exceptions.parsing_error import ParsingError
 from app.models.pokemon import Pokemon
 from app.parsers.pokemon_parser import PokemonParser
 from app.services.image_service import ImageService
@@ -44,6 +46,7 @@ class PokemonService:
                         "name": name,
                         "ok": False,
                         "error": str(exc),
+                        "error_type": self._classify_error(exc),
                     }
 
         tasks = [worker(name) for name in names]
@@ -60,3 +63,18 @@ class PokemonService:
             )
 
         return pokemon
+
+    @staticmethod
+    def _classify_error(exc: Exception) -> str:
+        if isinstance(exc, httpx.HTTPStatusError):
+            if exc.response.status_code == 404:
+                return "not_found"
+            return f"http_{exc.response.status_code}"
+
+        if isinstance(exc, ParsingError):
+            return "parsing_error"
+
+        if isinstance(exc, httpx.HTTPError):
+            return "network_error"
+
+        return "unexpected_error"
