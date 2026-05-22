@@ -23,7 +23,7 @@ class PokemonParser:
         stats = self.parse_base_stats(soup)
         evolutions = self.parse_evolutions(soup, name)
         abilities = self.parse_abilities(infobox)
-        image_path = self.parse_image_path(infobox)
+        image_url = self.parse_image_url(infobox)
 
         return Pokemon(
             name=name,
@@ -38,7 +38,7 @@ class PokemonParser:
             speed=stats["speed"],
             evolutions=evolutions,
             abilities=abilities,
-            image_path=image_path,
+            image_url=image_url,
         )
 
     def parse_infobox(self, soup: BeautifulSoup) -> Tag:
@@ -225,7 +225,7 @@ class PokemonParser:
 
         return abilities
 
-    def parse_image_path(self, infobox: Tag) -> str | None:
+    def parse_image_url(self, infobox: Tag) -> str | None:
         img = infobox.find("img")
         if img and img.get("src"):
             return urljoin(self.BASE_URL, img["src"])

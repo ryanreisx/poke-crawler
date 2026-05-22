@@ -48,10 +48,10 @@ def test_parse_bulbasaur():
         for ability in pokemon.abilities
     )
 
-    assert pokemon.image_path is not None
+    assert pokemon.image_url is not None
 
-    assert pokemon.image_path.startswith("https://")
+    assert pokemon.image_url.startswith("https://")
 
-    assert ".png" in pokemon.image_path
+    assert ".png" in pokemon.image_url
 
 

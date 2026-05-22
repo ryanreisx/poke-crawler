@@ -15,4 +15,5 @@ class Pokemon(BaseModel):
     speed: int
     evolutions: Evolutions
     abilities: list[Ability]
-    image_path: str
+    image_path: str | None = None
+    image_url: str
