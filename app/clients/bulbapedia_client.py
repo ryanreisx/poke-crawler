@@ -1,3 +1,5 @@
+from os import name
+
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
@@ -20,7 +22,13 @@ class BulbapediaClient:
         reraise=True,
     )
     async def fetch_pokemon_page(self, name: str) -> str:
-        pokemon_name = name.replace(" ", "_")
+        pokemon_name = " ".join(name.strip().split())
+
+        if pokemon_name.isupper():
+            pokemon_name = pokemon_name.capitalize()
+
+        pokemon_name =  pokemon_name.replace(" ", "_")
+
         url = f"{self.BASE_URL}/{pokemon_name}_(Pokémon)"
 
         async with httpx.AsyncClient(
