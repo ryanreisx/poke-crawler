@@ -1,3 +1,7 @@
+import pytest
+from bs4 import BeautifulSoup
+
+from app.exceptions.parsing_error import ParsingError
 from app.parsers.pokemon_parser import PokemonParser
 
 
@@ -53,5 +57,57 @@ def test_parse_bulbasaur():
     assert pokemon.image_url.startswith("https://")
 
     assert ".png" in pokemon.image_url
+
+
+def test_parse_raises_when_infobox_is_missing():
+    parser = PokemonParser()
+    html = "<html><body><h1>Bulbasaur</h1></body></html>"
+
+    with pytest.raises(ParsingError, match="Pokemon infobox not found"):
+        parser.parse(html)
+
+
+def test_parse_national_number_raises_on_invalid_format():
+    parser = PokemonParser()
+    infobox_html = """
+    <table class="roundy infobox">
+      <tr>
+        <td><a title="List of Pokémon by National Pokédex number">No. ???</a></td>
+      </tr>
+    </table>
+    """
+    infobox = BeautifulSoup(infobox_html, "lxml").find("table")
+
+    with pytest.raises(ParsingError, match="Invalid national number format"):
+        parser.parse_national_number(infobox)
+
+
+def test_parse_category_raises_when_category_link_is_missing():
+    parser = PokemonParser()
+    infobox_html = """
+    <table class="roundy infobox">
+      <tr><td>Without category link</td></tr>
+    </table>
+    """
+    infobox = BeautifulSoup(infobox_html, "lxml").find("table")
+
+    with pytest.raises(ParsingError, match="Pokemon category not found"):
+        parser.parse_category(infobox)
+
+
+def test_parse_base_stats_raises_when_stats_are_incomplete():
+    parser = PokemonParser()
+    html = """
+    <html><body>
+      <table>
+        <tr><th><a>HP</a><div></div><div>45</div></th></tr>
+        <tr><th><a>Attack</a><div></div><div>49</div></th></tr>
+      </table>
+    </body></html>
+    """
+    soup = BeautifulSoup(html, "lxml")
+
+    with pytest.raises(ParsingError, match="Missing base stats"):
+        parser.parse_base_stats(soup)
 
 

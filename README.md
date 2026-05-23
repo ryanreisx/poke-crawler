@@ -170,7 +170,7 @@ docker run --rm -v "C:\seu-caminho\poke-crawler\data:/app/data" poke-crawler cha
 Executar testes:
 
 ```bash
-pytest
+python -m pytest
 ```
 
 ## Decisoes técnicas
