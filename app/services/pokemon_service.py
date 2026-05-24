@@ -23,6 +23,10 @@ class PokemonService:
         self.parser = parser or PokemonParser()
         self.image_service = image_service or ImageService()
 
+    async def close(self):
+        await self.client.close()
+        await self.image_service.close()
+
     async def crawl_and_persist(self, name: str) -> PokemonModel:
         pokemon = await self.crawl(name)
 

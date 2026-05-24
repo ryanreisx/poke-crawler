@@ -1,2 +1,7 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
+data/pokemon.db
+data/images/
+data/logs/
+.venv/

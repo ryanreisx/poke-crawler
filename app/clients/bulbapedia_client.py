@@ -1,10 +1,18 @@
-from os import name
-
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 class BulbapediaClient:
     BASE_URL = "https://bulbapedia.bulbagarden.net/wiki"
+
+    def __init__(self):
+        self._client = httpx.AsyncClient(
+            timeout=10.0,
+            headers={"User-Agent": "pokemon-crawler/1.0"},
+            follow_redirects=True,
+        )
+
+    async def close(self):
+        await self._client.aclose()
 
     @staticmethod
     def _should_retry(exc: Exception) -> bool:
@@ -31,11 +39,6 @@ class BulbapediaClient:
 
         url = f"{self.BASE_URL}/{pokemon_name}_(Pokémon)"
 
-        async with httpx.AsyncClient(
-            timeout=10.0,
-            headers={"User-Agent": "pokemon-crawler/1.0"},
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            return response.text
+        response = await self._client.get(url)
+        response.raise_for_status()
+        return response.text

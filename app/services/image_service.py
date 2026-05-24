@@ -15,6 +15,10 @@ class ImageService:
     def __init__(self, base_path: str | Path | None = None):
         self.base_path = Path(base_path) if base_path else IMAGE_DIR
         os.makedirs(self.base_path, exist_ok=True)
+        self._client = httpx.AsyncClient(timeout=10.0)
+
+    async def close(self):
+        await self._client.aclose()
 
     @retry(
         retry=retry_if_exception_type(httpx.HTTPError),
@@ -23,11 +27,10 @@ class ImageService:
         reraise=True,
     )
     async def download(self, url: str, filename: str) -> str:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
+        response = await self._client.get(url)
+        response.raise_for_status()
 
-            file_path = self.base_path / filename
-            file_path.write_bytes(response.content)
+        file_path = self.base_path / filename
+        file_path.write_bytes(response.content)
 
         return str(file_path.relative_to(BASE_DIR).as_posix())

@@ -11,14 +11,18 @@ async def run_crawler(pokemon_names: list[str]) -> list[dict[str, object]]:
     init_db()
 
     service = PokemonService()
-    results = await service.crawl_and_persist_many(pokemon_names)
+    try:
+        results = await service.crawl_and_persist_many(pokemon_names)
 
-    for result in results:
-        if not result["ok"]:
-            logger.error(
-                "Pokemon failed | name=%s error_type=%s",
-                result["name"],
-                result["error_type"],
-            )
+        for result in results:
+            if not result["ok"]:
+                logger.error(
+                    "Pokemon failed | name=%s error_type=%s error=%s",
+                    result["name"],
+                    result["error_type"],
+                    result["error"],
+                )
 
-    return results
+        return results
+    finally:
+        await service.close()
