@@ -105,6 +105,9 @@ class PokemonParser:
 
             if type_name not in types:
                 types.append(type_name)
+        
+        if not types:
+          raise ParsingError("No types found")
 
         return types
 
@@ -153,11 +156,11 @@ class PokemonParser:
 
         heading = evo_span.find_parent(["h2", "h3", "h4"])
         if not heading:
-            return Evolutions(previous=None, next=None)
+            raise ParsingError("Evolution section found but heading structure changed")
 
         table = heading.find_next("table")
         if not table:
-            return Evolutions(previous=None, next=None)
+            raise ParsingError("Evolution section found but table not found")
 
         names: list[str] = []
         for a in table.find_all("a", href=True):
@@ -167,12 +170,12 @@ class PokemonParser:
 
         names = list(dict.fromkeys(names))
         if not names:
-            return Evolutions(previous=None, next=None)
+            raise ParsingError("Evolution section found but no names extracted")
 
         cur = self._norm(current_name)
         idx = next((i for i, n in enumerate(names) if self._norm(n) == cur), None)
         if idx is None:
-            return Evolutions(previous=None, next=None)
+            return Evolutions(previous=None, next=None)  
 
         previous = names[idx - 1] if idx > 0 else None
         next_ = names[idx + 1] if idx + 1 < len(names) else None
@@ -186,11 +189,11 @@ class PokemonParser:
                 break
 
         if not section_td:
-            return []
+            raise ParsingError("Abilities section not found")
 
         inner_table = section_td.find("table", class_="roundy")
         if not inner_table:
-            return []
+            raise ParsingError("Abilities table not found")
 
         abilities: list[Ability] = []
         seen: set[str] = set()
@@ -223,6 +226,9 @@ class PokemonParser:
 
             abilities.append(Ability(name=name, is_hidden=is_hidden))
 
+        if not abilities:
+            raise ParsingError("No abilities found")
+        
         return abilities
 
     def parse_image_url(self, infobox: Tag) -> str | None:
@@ -240,6 +246,7 @@ class PokemonParser:
         return re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()
 
     def _norm(self, value: str) -> str:
+        value = value.replace("♂", "").replace("♀", "")
         return re.sub(r"\s+", " ", value).strip().casefold()
 
     def _name_from_href(self, href: str) -> str | None:
@@ -272,3 +279,5 @@ class PokemonParser:
         style = (node.get("style") or "").replace(" ", "").lower()
 
         return "display:none" in style
+    
+
