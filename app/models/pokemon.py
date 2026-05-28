@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from .evolutions import Evolutions
 from .ability import Ability
+from .gender import Gender
 
 class Pokemon(BaseModel):
     name: str
@@ -17,3 +18,4 @@ class Pokemon(BaseModel):
     abilities: list[Ability]
     image_path: str | None = None
     image_url: str | None = None
+    gender: Gender | None = None

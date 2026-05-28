@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup, Tag
 from app.models.ability import Ability
 from app.models.evolutions import Evolutions
 from app.models.pokemon import Pokemon
+from app.models.pokemon import Gender
 from app.exceptions.parsing_error import ParsingError
 
 
@@ -15,6 +16,7 @@ class PokemonParser:
     def parse(self, html: str) -> Pokemon:
         soup = BeautifulSoup(html, "lxml")
         infobox = self.parse_infobox(soup)
+        gender = self.parse_gender(infobox)
 
         name = self.parse_name(soup)
         national_number = self.parse_national_number(infobox)
@@ -39,6 +41,7 @@ class PokemonParser:
             evolutions=evolutions,
             abilities=abilities,
             image_url=image_url,
+            gender = gender
         )
 
     def parse_infobox(self, soup: BeautifulSoup) -> Tag:
@@ -280,4 +283,42 @@ class PokemonParser:
 
         return "display:none" in style
     
+
+    def parse_gender(self, infobox: Tag) -> Gender | None:
+        link = infobox.find("a", title="List of Pokémon by gender ratio")
+        if not link:
+            return None
+
+        parent_td = link.find_parent("td")
+        if not parent_td:
+            raise ParsingError("Gender section found but parent container not found")
+
+        inner_table = parent_td.find("table")
+        if not inner_table:
+            raise ParsingError("Gender section found but table not found")
+
+        visible_tds = []
+        for td in inner_table.find_all("td"):
+            if not self._is_hidden_by_style(td):
+                visible_tds.append(td)
+
+        if not visible_tds:
+            raise ParsingError("Gender section found but no visible data")
+
+        male = 0.0
+        female = 0.0
+
+        for span in visible_tds[-1].find_all("span"):
+            text = span.get_text(strip=True)
+            if "female" in text:
+                parts = text.split("%")
+                female = float(parts[0])
+            elif "male" in text:
+                parts = text.split("%")
+                male = float(parts[0])
+
+        if male == 0.0 and female == 0.0:
+            return None
+
+        return Gender(male=male, female=female)
 

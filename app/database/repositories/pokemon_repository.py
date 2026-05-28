@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.database.models.pokemon_model import (
     PokemonAbilityModel,
     PokemonEvolutionModel,
+    PokemonGenderModel,
     PokemonModel,
     PokemonStatsModel,
     PokemonTypeModel,
@@ -31,6 +32,7 @@ class PokemonRepository:
 
         self._upsert_stats(persisted.id, pokemon)
         self._upsert_evolution(persisted.id, pokemon)
+        self._upsert_gender(persisted.id, pokemon)
         self._sync_types(persisted.id, pokemon.types)
         self._sync_abilities(persisted.id, pokemon.abilities)
 
@@ -100,6 +102,29 @@ class PokemonRepository:
             set_={
                 "prev_name": pokemon.evolutions.previous,
                 "next_name": pokemon.evolutions.next,
+            },
+        )
+        self.session.execute(stmt)
+
+    def _upsert_gender(self, pokemon_id: int, pokemon: Pokemon) -> None:
+        if pokemon.gender is None:
+            self.session.execute(
+                delete(PokemonGenderModel).where(
+                    PokemonGenderModel.pokemon_id == pokemon_id
+                )
+            )
+            return
+
+        stmt = sqlite_insert(PokemonGenderModel).values(
+            pokemon_id=pokemon_id,
+            male=pokemon.gender.male,
+            female=pokemon.gender.female,
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[PokemonGenderModel.pokemon_id],
+            set_={
+                "male": pokemon.gender.male,
+                "female": pokemon.gender.female,
             },
         )
         self.session.execute(stmt)

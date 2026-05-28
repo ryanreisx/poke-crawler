@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -32,6 +32,11 @@ class PokemonModel(Base):
         cascade="all, delete-orphan",
     )
     evolution: Mapped["PokemonEvolutionModel"] = relationship(
+        back_populates="pokemon",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    gender: Mapped["PokemonGenderModel"] = relationship(
         back_populates="pokemon",
         uselist=False,
         cascade="all, delete-orphan",
@@ -94,4 +99,17 @@ class PokemonEvolutionModel(Base):
     next_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     pokemon: Mapped[PokemonModel] = relationship(back_populates="evolution")
+
+
+class PokemonGenderModel(Base):
+    __tablename__ = "pokemon_gender"
+
+    pokemon_id: Mapped[int] = mapped_column(
+        ForeignKey("pokemon.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    male: Mapped[float] = mapped_column(Float, nullable=False)
+    female: Mapped[float] = mapped_column(Float, nullable=False)
+
+    pokemon: Mapped[PokemonModel] = relationship(back_populates="gender")
 
